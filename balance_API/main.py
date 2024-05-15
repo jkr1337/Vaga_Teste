@@ -26,11 +26,9 @@ def withdraw(origin, amount):
     http_return = 400
 
     if origin not in balances:
-        retorno['error'] = 'user not found'
-        http_return = 400
+        http_return = 404
     elif balances[origin] < amount:
-        retorno['error'] = 'insufficient balance'
-        http_return = 400
+        http_return = 404
     else:
         balances[origin] = balances[origin] - amount
         retorno_body['id'] = origin
@@ -45,16 +43,16 @@ def reset():
     global balances
     balances = {}
 
-    return jsonify({'reset':'OK'}), 200
+    return 'OK', 200
 
 @app.route('/balance', methods=['GET'])
 def get_balance():
     account_id = request.args.get("account_id")
 
     if account_id not in balances:
-        return jsonify(0), 404
+        return '0', 404
     
-    return jsonify({'account_id': account_id, 'balance': balances[account_id]})
+    return jsonify(balances[account_id]), 200
 
 @app.route('/event', methods=['POST'])
 def handle_event():
@@ -94,9 +92,7 @@ def handle_event():
 
             retorno_withdraw, http_return = withdraw(origin, amount)
 
-            if http_return != 201:
-                retorno['error'] = 'cant transfer'
-            else:
+            if http_return == 201:
                 retorno_deposit, http_return = deposit(destination, amount)
 
             for key, value in retorno_withdraw.items():
@@ -104,8 +100,10 @@ def handle_event():
             for key, value in retorno_deposit.items():
                 retorno[key] = value
 
-    return jsonify(retorno), http_return
-
+    if retorno:
+        return jsonify(retorno), http_return
+    else:
+        return '0', http_return
 
 if __name__ == '__main__':
     app.run(port=8080)
